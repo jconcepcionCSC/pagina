@@ -1,0 +1,942 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Foreclosure Flowchart</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700&family=IBM+Plex+Sans:wght@300;400;500&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+:root{
+  --bg:#f5f4f0;
+  --bg2:#eceae3;
+  --surface:#ffffff;
+  --border:#d8d5cc;
+  --border-strong:#b8b4a8;
+  --text:#1a1916;
+  --text-muted:#6b6860;
+  --text-light:#9e9b94;
+
+  --phase1:#1e3a5f;
+  --phase2:#2d6a4f;
+  --phase3:#7b3f00;
+  --phase4:#4a1942;
+
+  --c-start:#1e3a5f;
+  --c-finish:#4a1942;
+  --c-process:#2c4a6e;
+  --c-decision:#b5451b;
+  --c-approved:#2d6a4f;
+  --c-incomplete:#c0392b;
+  --c-collateral:#2d6a4f;
+  --c-servicer:#1a4971;
+  --c-attorney:#7b3f00;
+  --c-judicial:#1e3a5f;
+  --c-nonjudicial:#2d4a1e;
+  --c-bankruptcy:#6b1a1a;
+  --c-hold:#8b0000;
+  --c-timeline:#3d3200;
+
+  --font-display:'Syne',sans-serif;
+  --font-body:'IBM Plex Sans',sans-serif;
+  --font-mono:'IBM Plex Mono',monospace;
+}
+
+body{
+  background:var(--bg);
+  font-family:var(--font-body);
+  color:var(--text);
+  min-height:100vh;
+}
+
+/* ── Header ── */
+.header{
+  background:var(--text);
+  color:#f5f4f0;
+  padding:28px 40px 24px;
+  display:flex;
+  align-items:flex-end;
+  justify-content:space-between;
+  gap:20px;
+}
+.header h1{
+  font-family:var(--font-display);
+  font-size:28px;
+  font-weight:700;
+  letter-spacing:-0.5px;
+  line-height:1;
+}
+.header p{
+  font-size:12px;
+  color:#9e9b94;
+  font-family:var(--font-mono);
+  margin-top:6px;
+}
+.phase-pills{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+.pill{
+  font-size:11px;
+  font-family:var(--font-mono);
+  padding:4px 10px;
+  border-radius:3px;
+  border:1px solid rgba(255,255,255,0.2);
+  color:rgba(255,255,255,0.7);
+  cursor:pointer;
+  transition:all 0.15s;
+}
+.pill:hover,.pill.active{color:#fff;border-color:#fff;background:rgba(255,255,255,0.12)}
+
+/* ── Layout ── */
+.main{
+  display:grid;
+  grid-template-columns:1fr 340px;
+  gap:0;
+  min-height:calc(100vh - 90px);
+}
+
+/* ── Flow canvas ── */
+.flow-wrap{
+  padding:32px 32px 60px;
+  overflow-x:auto;
+}
+
+/* ── Phase section ── */
+.phase{
+  margin-bottom:40px;
+  opacity:1;
+  transition:opacity 0.3s;
+}
+.phase.dimmed{opacity:0.25}
+
+.phase-label{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin-bottom:20px;
+}
+.phase-badge{
+  font-family:var(--font-mono);
+  font-size:10px;
+  font-weight:500;
+  padding:4px 10px;
+  border-radius:2px;
+  color:#fff;
+  letter-spacing:1px;
+  text-transform:uppercase;
+}
+.phase-title{
+  font-family:var(--font-display);
+  font-size:14px;
+  font-weight:600;
+  color:var(--text-muted);
+  letter-spacing:0.3px;
+}
+.phase-divider{
+  flex:1;
+  height:1px;
+  background:var(--border);
+}
+
+/* ── Nodes ── */
+.flow{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:0;
+}
+
+.node{
+  cursor:pointer;
+  transition:transform 0.15s, box-shadow 0.15s;
+  border-radius:4px;
+}
+.node:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(0,0,0,0.12)}
+.node.active{box-shadow:0 0 0 3px var(--text), 0 8px 24px rgba(0,0,0,0.18) !important}
+
+.node-start,.node-finish{
+  padding:12px 36px;
+  border-radius:50px;
+  font-family:var(--font-display);
+  font-size:15px;
+  font-weight:700;
+  color:#fff;
+  letter-spacing:1px;
+  text-transform:uppercase;
+}
+.node-start{background:var(--c-start)}
+.node-finish{background:var(--c-finish)}
+
+.node-process{
+  padding:14px 24px;
+  background:var(--surface);
+  border:1.5px solid var(--border);
+  border-left:4px solid var(--c-process);
+  font-size:13px;
+  font-weight:500;
+  min-width:260px;
+  max-width:420px;
+  text-align:center;
+  line-height:1.4;
+}
+
+.node-decision{
+  padding:14px 28px;
+  background:#fff8f5;
+  border:1.5px solid #e8c4b0;
+  border-left:4px solid var(--c-decision);
+  font-size:13px;
+  font-weight:600;
+  min-width:200px;
+  text-align:center;
+  color:var(--c-decision);
+  font-family:var(--font-display);
+}
+
+.node-status{
+  padding:8px 20px;
+  border-radius:3px;
+  font-family:var(--font-mono);
+  font-size:11px;
+  font-weight:500;
+  letter-spacing:1px;
+  text-transform:uppercase;
+  color:#fff;
+}
+.status-approved{background:var(--c-approved)}
+.status-incomplete{background:var(--c-incomplete)}
+.status-collateral{background:var(--c-collateral)}
+.status-hold{background:var(--c-hold)}
+.status-contested{background:#8b6914;color:#fff}
+.status-resolved{background:var(--c-approved)}
+
+.node-box{
+  padding:14px 20px;
+  background:var(--surface);
+  border:1px solid var(--border);
+  font-size:12px;
+  line-height:1.6;
+  min-width:240px;
+  max-width:380px;
+}
+.node-box h4{
+  font-family:var(--font-display);
+  font-size:13px;
+  font-weight:600;
+  margin-bottom:6px;
+  color:var(--text);
+}
+.node-box ul{
+  list-style:none;
+  padding:0;
+}
+.node-box ul li::before{content:'→ ';color:var(--text-muted);font-family:var(--font-mono)}
+.node-box ul li{color:var(--text-muted);font-size:11px;line-height:1.7}
+
+.node-phase-box{
+  padding:16px 20px;
+  border:1.5px solid var(--border);
+  background:var(--surface);
+  min-width:280px;
+  max-width:480px;
+}
+
+/* Arrows */
+.arrow{
+  width:2px;
+  background:var(--border-strong);
+  margin:0 auto;
+  position:relative;
+  display:flex;
+  align-items:flex-end;
+  justify-content:center;
+}
+.arrow::after{
+  content:'';
+  position:absolute;
+  bottom:-1px;
+  left:50%;
+  transform:translateX(-50%);
+  border-left:5px solid transparent;
+  border-right:5px solid transparent;
+  border-top:7px solid var(--border-strong);
+}
+.arrow-label{
+  position:absolute;
+  right:10px;
+  top:50%;
+  transform:translateY(-50%);
+  font-family:var(--font-mono);
+  font-size:10px;
+  color:var(--text-muted);
+  background:var(--bg);
+  padding:1px 4px;
+  white-space:nowrap;
+}
+
+/* Branch layout */
+.branch{
+  display:flex;
+  gap:24px;
+  align-items:flex-start;
+  width:100%;
+  justify-content:center;
+}
+.branch-col{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:0;
+  flex:1;
+  max-width:380px;
+}
+.branch-label{
+  font-family:var(--font-mono);
+  font-size:10px;
+  color:#fff;
+  padding:2px 10px;
+  border-radius:2px;
+  margin-bottom:8px;
+  letter-spacing:0.5px;
+}
+.branch-yes{background:var(--c-approved)}
+.branch-no{background:var(--c-incomplete)}
+
+/* Connector line (horizontal) */
+.h-connector{
+  width:100%;
+  height:2px;
+  background:var(--border);
+  margin:16px 0;
+}
+
+/* Timeline box */
+.timeline-box{
+  background:#fffef5;
+  border:1px solid #e8e0a0;
+  border-left:4px solid var(--c-timeline);
+  padding:12px 16px;
+  font-size:11px;
+  font-family:var(--font-mono);
+  line-height:1.8;
+  color:var(--c-timeline);
+  min-width:220px;
+  max-width:340px;
+}
+.timeline-box strong{font-size:12px;display:block;margin-bottom:4px;color:var(--text)}
+
+/* Bankruptcy box */
+.bankruptcy-box{
+  background:#fff5f5;
+  border:1.5px solid #e8b0b0;
+  border-left:4px solid var(--c-bankruptcy);
+  padding:14px 18px;
+  font-size:11px;
+  line-height:1.7;
+  color:#3d1a1a;
+  min-width:260px;
+  max-width:400px;
+}
+.bankruptcy-box h4{
+  font-family:var(--font-display);
+  font-size:13px;
+  font-weight:700;
+  color:var(--c-bankruptcy);
+  margin-bottom:6px;
+}
+
+/* States box */
+.states-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr 1fr;
+  gap:12px;
+  width:100%;
+  max-width:700px;
+  margin:0 auto;
+}
+.states-box{
+  background:var(--surface);
+  border:1px solid var(--border);
+  padding:12px 14px;
+  font-size:10px;
+  line-height:1.8;
+  color:var(--text-muted);
+}
+.states-box h5{
+  font-family:var(--font-display);
+  font-size:11px;
+  font-weight:700;
+  margin-bottom:6px;
+  padding-bottom:4px;
+  border-bottom:1px solid var(--border);
+}
+.states-box.judicial h5{color:var(--phase1)}
+.states-box.nonjudicial h5{color:var(--phase2)}
+.states-box.both h5{color:var(--phase3)}
+
+/* Approvers box */
+.approvers-box{
+  background:#f0f4ff;
+  border:1px solid #c0ccee;
+  border-left:4px solid var(--c-start);
+  padding:12px 16px;
+  font-size:11px;
+  line-height:1.8;
+  color:#1a2a5e;
+  min-width:220px;
+}
+.approvers-box h4{
+  font-family:var(--font-display);
+  font-size:12px;
+  font-weight:700;
+  margin-bottom:4px;
+}
+
+/* ── Info panel ── */
+.info-panel{
+  background:var(--surface);
+  border-left:1px solid var(--border);
+  padding:32px 24px;
+  position:sticky;
+  top:0;
+  height:calc(100vh - 90px);
+  overflow-y:auto;
+  display:flex;
+  flex-direction:column;
+  gap:20px;
+}
+
+.info-phase-tag{
+  font-family:var(--font-mono);
+  font-size:10px;
+  letter-spacing:1.5px;
+  text-transform:uppercase;
+  color:var(--text-muted);
+}
+
+.info-title{
+  font-family:var(--font-display);
+  font-size:20px;
+  font-weight:700;
+  line-height:1.2;
+  color:var(--text);
+}
+
+.info-divider{height:1px;background:var(--border)}
+
+.info-body{
+  font-size:13px;
+  line-height:1.75;
+  color:var(--text-muted);
+}
+.info-body ul{padding-left:0;list-style:none}
+.info-body ul li::before{content:'• ';color:var(--border-strong)}
+.info-body ul li{margin-bottom:4px}
+.info-body strong{color:var(--text);font-weight:500}
+
+.info-placeholder{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  height:100%;
+  gap:12px;
+  text-align:center;
+  color:var(--text-light);
+}
+.info-placeholder .big{font-size:36px}
+.info-placeholder p{font-size:13px;max-width:200px;line-height:1.6}
+
+/* small spacing helpers */
+.gap4{height:4px}
+.gap8{height:8px}
+.gap16{height:16px}
+.gap24{height:24px}
+.gap32{height:32px}
+
+@media(max-width:900px){
+  .main{grid-template-columns:1fr}
+  .info-panel{position:static;height:auto;border-left:none;border-top:1px solid var(--border)}
+  .states-grid{grid-template-columns:1fr}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div>
+    <h1>Foreclosure Flowchart</h1>
+    <p>Assets Recovery Center, LLC — Click any node for details</p>
+  </div>
+  <div class="phase-pills">
+    <div class="pill active" onclick="filterPhase('all',this)">All Phases</div>
+    <div class="pill" onclick="filterPhase('1',this)">Phase 1</div>
+    <div class="pill" onclick="filterPhase('2',this)">Phase 2</div>
+    <div class="pill" onclick="filterPhase('3',this)">Phase 3</div>
+    <div class="pill" onclick="filterPhase('4',this)">Phase 4</div>
+  </div>
+</div>
+
+<div class="main">
+<div class="flow-wrap">
+
+<!-- ══ START ══ -->
+<div class="flow">
+  <div class="node node-start" onclick="show('start')">START</div>
+  <div class="arrow" style="height:24px"></div>
+</div>
+
+<!-- ══ PHASE 1 ══ -->
+<div class="phase" data-phase="1">
+  <div class="phase-label">
+    <div class="phase-badge" style="background:var(--phase1)">Phase 1</div>
+    <div class="phase-title">Verification of Equity, Collateral & SOL</div>
+    <div class="phase-divider"></div>
+  </div>
+
+  <div class="flow">
+    <!-- Equity check -->
+    <div class="node node-box" onclick="show('equity')">
+      <h4>Confirm Equity — Get Ready</h4>
+      <ul>
+        <li>Property Value (AVM/BPO)</li>
+        <li>Other Lien Tab (SLU)</li>
+        <li>Property Taxes</li>
+      </ul>
+    </div>
+    <div class="arrow" style="height:20px"></div>
+
+    <!-- Collateral -->
+    <div class="node node-box" onclick="show('collateral')">
+      <h4>Confirm Collateral — Completed docs to AITNO</h4>
+      <ul>
+        <li>REC MTG/DOT</li>
+        <li>NOTE/LNA</li>
+        <li>END'S/ALLONGES</li>
+        <li>REC ASN'S</li>
+        <li>*Confirmation of possession & location of Original NOTE/LNA</li>
+      </ul>
+    </div>
+    <div class="arrow" style="height:20px"></div>
+
+    <!-- Decision: Collateral complete? -->
+    <div class="node node-decision" onclick="show('collateral-decision')">Is Collateral Complete?</div>
+    <div class="gap8"></div>
+
+    <!-- Branch: incomplete / complete -->
+    <div class="branch" style="width:100%;max-width:640px">
+      <div class="branch-col">
+        <div class="branch-label branch-no">INCOMPLETE</div>
+        <div class="node node-box" onclick="show('collateral-incomplete')" style="border-left-color:var(--c-incomplete)">
+          <h4>Request Collateral Team</h4>
+          <ul><li>Review, verify and complete chain</li></ul>
+        </div>
+        <div class="gap8"></div>
+        <div class="node node-status status-incomplete" onclick="show('distressed')">Lien becomes "Distressed" — Cannot proceed</div>
+      </div>
+      <div class="branch-col">
+        <div class="branch-label branch-yes">COLLATERAL COMPLETED</div>
+        <div class="arrow" style="height:20px"></div>
+        <!-- SOL -->
+        <div class="node node-box" onclick="show('sol')">
+          <h4>Verify SOL — Statute of Limitations</h4>
+          <ul>
+            <li>Using SOL State Guideline</li>
+            <li>Attorney review for final confirmation</li>
+          </ul>
+        </div>
+        <div class="arrow" style="height:16px"></div>
+        <!-- Approvers -->
+        <div class="approvers-box node" onclick="show('approvers')">
+          <h4>Asset Manager Approval Required</h4>
+          Junior Cabrera · Armando Rosa<br>Manor Santos · Ruben Vangas
+        </div>
+      </div>
+    </div>
+
+    <div class="gap16"></div>
+    <div class="node node-status status-approved" onclick="show('approved')">APPROVED</div>
+    <div class="arrow" style="height:24px"></div>
+  </div>
+</div>
+
+<!-- ══ PHASE 2 ══ -->
+<div class="phase" data-phase="2">
+  <div class="phase-label">
+    <div class="phase-badge" style="background:var(--phase2)">Phase 2</div>
+    <div class="phase-title">ITF — Notices</div>
+    <div class="phase-divider"></div>
+  </div>
+
+  <div class="flow">
+    <!-- Servicer vs In-House branch -->
+    <div class="branch" style="max-width:700px;width:100%">
+      <div class="branch-col">
+        <div class="node node-box" onclick="show('servicer')" style="border-left-color:var(--c-servicer)">
+          <h4>Thru SERVICER</h4>
+          <ul>
+            <li>Planet Home Lending (PHL)</li>
+            <li>Dyck O'Neal (DONI)</li>
+            <li>Shellpoint (SMS)</li>
+            <li>Cornerstone</li>
+          </ul>
+        </div>
+      </div>
+      <div class="branch-col">
+        <div class="node node-box" onclick="show('inhouse')" style="border-left-color:var(--c-attorney)">
+          <h4>In-House</h4>
+          <ul><li>Assets Recovery Center, LLC</li></ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow" style="height:20px"></div>
+
+    <!-- Notices -->
+    <div class="node node-box" onclick="show('notices')" style="max-width:480px">
+      <h4>Get Letters / Notices Before Action</h4>
+      <ul>
+        <li>30/60-Day Letter (Delinquent/Late)</li>
+        <li>Demand Letter / Notice of Default (NOD)</li>
+        <li>Loss Mitigation / Early Intervention Letters</li>
+        <li>Notice of Intent to Foreclose (NOI)</li>
+        <li>90-Day Pre-Foreclosure Notice (state-specific)</li>
+        <li>Right-to-Cure Notice (90/150 days)</li>
+      </ul>
+    </div>
+    <div class="arrow" style="height:20px"></div>
+
+    <!-- Branch: Refer to Attorney -->
+    <div class="branch" style="max-width:720px;width:100%">
+      <div class="branch-col">
+        <div class="node node-box" onclick="show('atty-docs')" style="border-left-color:var(--c-attorney)">
+          <h4>Prepare Documents → Attorney</h4>
+          <ul>
+            <li>REC MTG/DOT · NOTE/LNA</li>
+            <li>Chain of END'S/ALLONGES</li>
+            <li>Chain of REC ASN'S</li>
+            <li>Loan Modification (if applicable)</li>
+            <li>Loan Application · Notice of Default</li>
+            <li>Payment History/Statement</li>
+            <li>Demand for Payoff · Reinstatement Figures</li>
+          </ul>
+        </div>
+      </div>
+      <div class="branch-col">
+        <div class="node node-box" onclick="show('referral-email')" style="border-left-color:var(--c-approved)">
+          <h4>Prepare Referral Email to Law Firm</h4>
+          <ul>
+            <li>Creditor's name · Loan #</li>
+            <li>Debtor(s)/Borrower(s) name</li>
+            <li>Social Security Number (SSN)</li>
+            <li>Lien Priority: 1st or 2nd</li>
+            <li>Default Date</li>
+          </ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="gap16"></div>
+    <div class="node node-status status-approved" style="background:var(--c-attorney);color:#fff;font-family:var(--font-mono);font-size:11px;padding:8px 20px;border-radius:3px;letter-spacing:1px" onclick="show('refer-atty')">REFER TO ATTORNEY (preferred attorney list)</div>
+    <div class="arrow" style="height:24px"></div>
+  </div>
+</div>
+
+<!-- ══ PHASE 3 ══ -->
+<div class="phase" data-phase="3">
+  <div class="phase-label">
+    <div class="phase-badge" style="background:var(--phase3)">Phase 3</div>
+    <div class="phase-title">Foreclosure Action — Steps / Process</div>
+    <div class="phase-divider"></div>
+  </div>
+
+  <div class="flow">
+    <div class="node node-decision" onclick="show('fcl-type')">Type of Foreclosure</div>
+    <div class="gap16"></div>
+
+    <!-- Judicial / Non-Judicial branch -->
+    <div class="branch" style="max-width:780px;width:100%;align-items:flex-start">
+
+      <!-- JUDICIAL -->
+      <div class="branch-col">
+        <div class="branch-label" style="background:var(--phase1)">⚖️ JUDICIAL</div>
+        <div class="node node-box" onclick="show('complaint')" style="border-left-color:var(--phase1)">
+          <h4>Foreclosure Complaint Filed in Court</h4>
+          <ul>
+            <li>Complaint · Summons · Lis Pendens</li>
+            <li>Service of Process</li>
+          </ul>
+        </div>
+        <div class="arrow" style="height:16px"></div>
+        <div class="node node-box" onclick="show('service')" style="border-left-color:var(--phase1)">
+          <h4>Service of Process</h4>
+          <ul>
+            <li>Personal service</li>
+            <li>Substitute service</li>
+            <li>By publication (if not located)</li>
+          </ul>
+        </div>
+        <div class="arrow" style="height:16px"></div>
+        <div class="node node-box" onclick="show('response')" style="border-left-color:var(--phase1)">
+          <h4>Borrower Response Period</h4>
+          <ul>
+            <li>A. No response (Default)</li>
+            <li>B. Borrower files an answer</li>
+          </ul>
+        </div>
+        <div class="gap8"></div>
+        <div class="node node-status status-contested" onclick="show('contested')">CONTESTED</div>
+        <div class="arrow" style="height:16px"></div>
+        <div class="node node-box" onclick="show('litigation')" style="border-left-color:var(--phase3)">
+          <h4>Litigation / Motions / Discovery</h4>
+          <ul>
+            <li>Motions to dismiss · Appeals</li>
+            <li>Discovery requests · Mediation</li>
+            <li>Settlement conferences</li>
+            <li>Loan modification negotiations</li>
+          </ul>
+        </div>
+        <div class="arrow" style="height:16px"></div>
+        <div class="node node-box" onclick="show('msj')" style="border-left-color:var(--phase1)">
+          <h4>Motion for Summary Judgment or Trial</h4>
+          <ul><li>Court grants summary judgment or case goes to trial</li></ul>
+        </div>
+        <div class="arrow" style="height:16px"></div>
+        <div class="node node-box" onclick="show('judgment')" style="border-left-color:var(--phase1)">
+          <h4>Judgment of Foreclosure and Sale Entered</h4>
+          <ul><li>Court order allows property to be sold</li></ul>
+        </div>
+        <div class="gap8"></div>
+        <div class="node node-status status-resolved" onclick="show('resolved')">CONTESTED MATTER RESOLVED</div>
+        <div class="gap16"></div>
+        <div class="timeline-box node" onclick="show('judicial-timeline')">
+          <strong>⏱ Judicial Timeline</strong>
+          Uncontested: 6–12 months<br>
+          Average: 12–24 months<br>
+          Highly contested: 2–10+ years
+        </div>
+      </div>
+
+      <!-- NON-JUDICIAL -->
+      <div class="branch-col">
+        <div class="branch-label" style="background:var(--phase2)">📑 NON-JUDICIAL</div>
+        <div class="node node-box" onclick="show('reinstatement')" style="border-left-color:var(--phase2)">
+          <h4>Reinstatement / Cure Period</h4>
+          <ul>
+            <li>Borrower pays past-due payments</li>
+            <li>Late fees & legal/trustee costs</li>
+            <li>Pre-sale reinstatement period</li>
+          </ul>
+        </div>
+        <div class="arrow" style="height:16px"></div>
+        <div class="node node-box" onclick="show('nots')" style="border-left-color:var(--phase2)">
+          <h4>Notice of Trustee Sale (NOTS)</h4>
+          <ul>
+            <li>Recorded · Mailed to borrower</li>
+            <li>Posted on the property</li>
+            <li>Published in a newspaper</li>
+            <li>Sets the auction date</li>
+          </ul>
+        </div>
+        <div class="gap16"></div>
+        <div class="timeline-box node" onclick="show('nonjudicial-timeline')">
+          <strong>⏱ Non-Judicial Timeline</strong>
+          Notice of Default: 1–3 months<br>
+          Notice of Sale to auction: 3–4 weeks<br>
+          Trustee deed/transfer: 1–2 weeks<br>
+          <strong style="color:var(--c-timeline);margin-top:4px;display:block">Total: 4–8 months</strong>
+        </div>
+      </div>
+    </div>
+
+    <div class="gap24"></div>
+
+    <!-- States grid -->
+    <div class="states-grid node" onclick="show('states')">
+      <div class="states-box judicial">
+        <h5>⚖️ Judicial States</h5>
+        Connecticut · Delaware · Florida · Illinois · Indiana · Iowa · Kansas · Kentucky · Louisiana · Maine · New Jersey · New Mexico · New York · North Dakota · Ohio · Pennsylvania · South Carolina · Vermont · Wisconsin
+      </div>
+      <div class="states-box nonjudicial">
+        <h5>📑 Non-Judicial States</h5>
+        Alabama · Alaska · Arizona · California · Colorado · DC · Georgia · Idaho · Massachusetts · Michigan · Montana · Rhode Island · Tennessee · Texas · Virginia · Washington · West Virginia · Wyoming
+      </div>
+      <div class="states-box both">
+        <h5>🔀 Both Allowed</h5>
+        Arkansas · Hawaii · Maryland · Minnesota · Mississippi · Missouri · Nebraska · Nevada · New Hampshire · North Carolina · Oklahoma · Oregon · South Dakota · Utah
+      </div>
+    </div>
+
+    <div class="arrow" style="height:28px"></div>
+  </div>
+</div>
+
+<!-- ══ PHASE 4 ══ -->
+<div class="phase" data-phase="4">
+  <div class="phase-label">
+    <div class="phase-badge" style="background:var(--phase4)">Phase 4</div>
+    <div class="phase-title">Foreclosure Sale</div>
+    <div class="phase-divider"></div>
+  </div>
+
+  <div class="flow">
+
+    <!-- Redemption -->
+    <div class="node node-box" onclick="show('redemption')" style="border-left-color:var(--phase4)">
+      <h4>Redemption Period (some states)</h4>
+      <ul><li>Court allows borrower to Reinstate or Pay in Full (PIF)</li></ul>
+    </div>
+    <div class="arrow" style="height:20px"></div>
+
+    <!-- Bankruptcy interrupt -->
+    <div class="bankruptcy-box node" onclick="show('bankruptcy')">
+      <h4>⚠️ BANKRUPTCY — HOLD/STOP</h4>
+      Borrowers often file BK before/on day of Foreclosure Sale to delay.<br><br>
+      <strong>Types:</strong> Chapter 7 (Liquidation) · Chapter 13 (Pay-back) · Chapter 11 (Reorganization)<br><br>
+      <strong>Scenarios:</strong><br>
+      A. BK proceeds normally<br>
+      B. BK dismissed → stay lifted → returns to Judgment<br>
+      C. Multiple BK filings → stay not imposed → FC continues
+    </div>
+    <div class="arrow" style="height:20px"></div>
+
+    <!-- Auction branch -->
+    <div class="branch" style="max-width:680px;width:100%;align-items:flex-start">
+      <div class="branch-col">
+        <div class="branch-label" style="background:var(--phase1)">Judicial Path</div>
+        <div class="node node-box" onclick="show('fcl-auction')" style="border-left-color:var(--phase1)">
+          <h4>Foreclosure Auction</h4>
+          <ul>
+            <li>Property auctioned to highest bidder</li>
+            <li>Lender takes title if no bidder</li>
+          </ul>
+        </div>
+        <div class="arrow" style="height:16px"></div>
+        <div class="node node-box" onclick="show('sale-confirm')" style="border-left-color:var(--phase1)">
+          <h4>Sale Confirmation Period (some states)</h4>
+          <ul><li>Court reviews and confirms the sale</li></ul>
+        </div>
+        <div class="arrow" style="height:16px"></div>
+        <div class="node node-box" onclick="show('title-transfer')" style="border-left-color:var(--phase4)">
+          <h4>Transfer of Title / Eviction</h4>
+          <ul>
+            <li>Deed recorded to winning bidder</li>
+            <li>If borrower stays → eviction proceedings</li>
+          </ul>
+        </div>
+      </div>
+      <div class="branch-col">
+        <div class="branch-label" style="background:var(--phase2)">Non-Judicial Path</div>
+        <div class="node node-box" onclick="show('trustee-sale')" style="border-left-color:var(--phase2)">
+          <h4>Foreclosure Auction / Trustee Sale</h4>
+          <ul>
+            <li>Sold at public auction</li>
+            <li>At courthouse, county steps, or online</li>
+          </ul>
+        </div>
+        <div class="arrow" style="height:16px"></div>
+        <div class="node node-box" onclick="show('trustee-deed')" style="border-left-color:var(--phase2)">
+          <h4>Trustee Deed Issued</h4>
+          <ul><li>Trustee's Deed Upon Sale issued to winner</li></ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="arrow" style="height:28px"></div>
+    <div class="node node-finish" onclick="show('finish')">FINISH</div>
+  </div>
+</div>
+
+</div><!-- /flow-wrap -->
+
+<!-- ══ INFO PANEL ══ -->
+<div class="info-panel" id="infoPanel">
+  <div class="info-placeholder" id="placeholder">
+    <div class="big">⚖️</div>
+    <p>Click any node to see details and descriptions</p>
+  </div>
+  <div id="infoContent" style="display:none;flex-direction:column;gap:16px">
+    <div class="info-phase-tag" id="iPhase"></div>
+    <div class="info-title" id="iTitle"></div>
+    <div class="info-divider"></div>
+    <div class="info-body" id="iBody"></div>
+  </div>
+</div>
+</div><!-- /main -->
+
+<script>
+const data = {
+  start:{phase:'Entry Point',title:'START',body:'<p>The foreclosure process begins here. Before any action is taken, the team must confirm three critical elements: <strong>Equity</strong> (property value vs. liens), <strong>Collateral</strong> (all documents in proper chain of title), and <strong>SOL</strong> (Statute of Limitations).</p>'},
+  finish:{phase:'Exit Point',title:'FINISH',body:'<p>The foreclosure process concludes. Title has been transferred to the winning bidder or lender, and all post-sale procedures (eviction, redemption if applicable) have been resolved.</p>'},
+  equity:{phase:'Phase 1',title:'Confirm Equity — Get Ready',body:'<p>Before proceeding, verify the property has sufficient equity to justify foreclosure action:</p><ul><li><strong>AVM/BPO</strong> — Automated Valuation Model or Broker Price Opinion for property value</li><li><strong>SLU (Other Lien Tab)</strong> — All other liens on the property</li><li><strong>Property Taxes</strong> — Current tax status and arrears</li></ul>'},
+  collateral:{phase:'Phase 1',title:'Confirm Collateral — Completed Docs to AITNO',body:'<p>All original collateral documents must be confirmed, located, and delivered to <strong>Action in the Name of (AITNO)</strong>:</p><ul><li><strong>REC MTG/DOT</strong> — Recorded Mortgage / Deed of Trust</li><li><strong>NOTE/LNA</strong> — Promissory Note / Loan Note Agreement</li><li><strong>END\'S/ALLONGES</strong> — Endorsements and allonges on the note</li><li><strong>REC ASN\'S</strong> — Recorded Assignments of mortgage</li></ul><p>Critical: possession and location of the <strong>Original NOTE/LNA</strong> must be confirmed.</p>'},
+  'collateral-decision':{phase:'Phase 1',title:'Is Collateral Complete?',body:'<p>A critical decision point. The chain of title must be <strong>complete and unbroken</strong>. If any document is missing or the chain cannot be completed:</p><ul><li>The lien becomes <strong>"Distressed"</strong></li><li>Foreclosure <strong>cannot proceed</strong></li><li>The Collateral Team must attempt to remedy the gaps</li></ul>'},
+  'collateral-incomplete':{phase:'Phase 1',title:'Incomplete Collateral — Collateral Team Review',body:'<p>When collateral is incomplete, the Collateral Team is engaged to review, verify, and complete the chain. If the chain is <strong>impossible to complete</strong>, the lien is classified as <strong>"Distressed"</strong> and foreclosure action cannot proceed.</p>'},
+  distressed:{phase:'Phase 1',title:'Distressed Lien',body:'<p>When the collateral chain cannot be completed, the lien is reclassified as <strong>"Distressed"</strong>. This means:</p><ul><li>Foreclosure action cannot proceed</li><li>The asset must be managed differently (e.g., short sale, deed-in-lieu, or hold)</li></ul>'},
+  sol:{phase:'Phase 1',title:'Verify Statute of Limitations (SOL)',body:'<p>Every state has a Statute of Limitations on mortgage foreclosure actions. The loan must NOT be time-barred.</p><ul><li>Use the <strong>SOL State Guideline</strong> as primary reference</li><li>An <strong>attorney must review</strong> the file for final verification</li><li>Proceeding on a SOL-barred loan exposes the company to legal liability</li></ul>'},
+  approvers:{phase:'Phase 1',title:'Asset Manager Approval',body:'<p>Before sending any referral (whether In-House or through a Servicer), the Asset Manager must approve. Authorized approvers are:</p><ul><li>Junior Cabrera</li><li>Armando Rosa</li><li>Manor Santos</li><li>Ruben Vangas</li></ul>'},
+  approved:{phase:'Phase 1 → Phase 2',title:'APPROVED',body:'<p>All Phase 1 checks have passed: equity confirmed, collateral complete, SOL verified, and Asset Manager has approved. The file moves to <strong>Phase 2 — ITF Notices</strong>.</p>'},
+  servicer:{phase:'Phase 2',title:'Thru Servicer',body:'<p>Foreclosure can be processed through an approved servicer:</p><ul><li><strong>Planet Home Lending (PHL)</strong></li><li><strong>Dyck O\'Neal (DONI)</strong></li><li><strong>Shellpoint (SMS)</strong></li><li><strong>Cornerstone</strong></li></ul>'},
+  inhouse:{phase:'Phase 2',title:'In-House',body:'<p>Alternatively, foreclosure can be processed in-house through <strong>Assets Recovery Center, LLC</strong>.</p>'},
+  notices:{phase:'Phase 2',title:'Required Notices Before Action',body:'<p>Before filing, required pre-foreclosure notices must be sent:</p><ul><li><strong>30/60-Day Letter</strong> — Delinquency notice</li><li><strong>Demand Letter / NOD</strong> — Notice of Default</li><li><strong>Loss Mitigation / Early Intervention Letters</strong></li><li><strong>Notice of Intent to Foreclose (NOI)</strong></li><li><strong>90-Day Pre-Foreclosure Notice</strong> (state-specific)</li><li><strong>Right-to-Cure Notice</strong> — 90 or 150 days depending on state</li></ul>'},
+  'atty-docs':{phase:'Phase 2',title:'Documents Prepared for Attorney',body:'<p>Complete package sent to the foreclosure attorney:</p><ul><li>REC MTG/DOT · NOTE/LNA</li><li>Chain of END\'S/ALLONGES</li><li>Chain of REC ASN\'S</li><li>Loan Modification (if applicable)</li><li>Loan Application · Notice of Default</li><li>Payment History / Statement</li><li>Demand for Payoff · Reinstatement Figures</li></ul>'},
+  'referral-email':{phase:'Phase 2',title:'Referral Email to Law Firm',body:'<p>A referral email is prepared and sent to the law firm handling the foreclosure. Required information:</p><ul><li>Creditor\'s name</li><li>Loan number</li><li>Debtor(s) / Borrower(s) name</li><li>Social Security Number (SSN)</li><li>Lien Priority: 1st or 2nd</li><li>Default Date</li></ul>'},
+  'refer-atty':{phase:'Phase 2',title:'Refer to Attorney',body:'<p>Based on the <strong>preferred attorney list</strong>, the file is formally referred to a foreclosure law firm. The attorney will determine the appropriate type of foreclosure based on the state.</p>'},
+  'fcl-type':{phase:'Phase 3',title:'Type of Foreclosure',body:'<p>The foreclosure type is determined by the <strong>state where the property is located</strong>:</p><ul><li><strong>Judicial</strong> — Court-supervised process (slower, more borrower protections)</li><li><strong>Non-Judicial</strong> — Out-of-court process using power of sale clause (faster)</li><li><strong>Both</strong> — Some states allow either method</li></ul>'},
+  complaint:{phase:'Phase 3 — Judicial',title:'Foreclosure Complaint Filed in Court',body:'<p>The lender files a foreclosure lawsuit. Common court filings include:</p><ul><li><strong>Complaint</strong> — The formal legal claim</li><li><strong>Summons</strong> — Notice to the borrower</li><li><strong>Lis Pendens</strong> — Notice of pending litigation recorded on title</li></ul>'},
+  service:{phase:'Phase 3 — Judicial',title:'Service of Process',body:'<p>The borrower must be legally served with the lawsuit:</p><ul><li><strong>Personal service</strong> — Delivered directly to borrower</li><li><strong>Substitute service</strong> — Left with someone at the property</li><li><strong>By publication</strong> — Published in a newspaper if borrower cannot be located</li></ul>'},
+  response:{phase:'Phase 3 — Judicial',title:'Borrower Response Period',body:'<p>After being served, the borrower has a set period to respond:</p><ul><li><strong>No response</strong> — Default judgment can be entered</li><li><strong>Borrower files an answer</strong> — Case becomes contested, triggering litigation phase</li></ul>'},
+  contested:{phase:'Phase 3 — Judicial',title:'Contested Case',body:'<p>When the borrower files a response, the case becomes <strong>contested</strong>. This triggers the full litigation process including motions, discovery, and potentially trial. This significantly extends the timeline.</p>'},
+  litigation:{phase:'Phase 3 — Judicial',title:'Litigation / Motions / Discovery',body:'<p>The contested phase may include:</p><ul><li>Motions to dismiss</li><li>Appeals</li><li>Discovery requests</li><li>Mediation programs</li><li>Settlement conferences</li><li>Loan modification negotiations</li></ul>'},
+  msj:{phase:'Phase 3 — Judicial',title:'Motion for Summary Judgment or Trial',body:'<p>If no settlement is reached, the case proceeds to either:</p><ul><li><strong>Summary Judgment</strong> — Court rules in lender\'s favor without full trial (borrower has no valid defense)</li><li><strong>Trial</strong> — Full court trial if genuine disputes of fact exist</li></ul>'},
+  judgment:{phase:'Phase 3 — Judicial',title:'Judgment of Foreclosure and Sale Entered',body:'<p>The court issues an order authorizing the property to be sold at foreclosure auction. This is the final court order before the sale proceeds.</p>'},
+  resolved:{phase:'Phase 3 — Judicial',title:'Contested Matter Resolved',body:'<p>The contested matter has been resolved — either through summary judgment, trial verdict, or settlement. The foreclosure sale can now proceed.</p>'},
+  'judicial-timeline':{phase:'Phase 3 — Judicial',title:'Judicial Foreclosure Timeline',body:'<ul><li><strong>Uncontested:</strong> 6–12 months</li><li><strong>Average contested:</strong> 12–24 months</li><li><strong>Highly contested:</strong> 2–10+ years</li></ul><p>Timeline varies significantly by state, court backlog, and borrower actions (BK filings, appeals, etc.).</p>'},
+  reinstatement:{phase:'Phase 3 — Non-Judicial',title:'Reinstatement / Cure Period',body:'<p>Before the Notice of Trustee Sale, the borrower has the opportunity to reinstate the loan by paying:</p><ul><li>All past-due payments</li><li>Late fees</li><li>Legal and trustee costs</li></ul><p>This is the <strong>pre-sale reinstatement period</strong>.</p>'},
+  nots:{phase:'Phase 3 — Non-Judicial',title:'Notice of Trustee Sale (NOTS)',body:'<p>If the loan is not cured, the trustee records a Notice of Trustee Sale which sets the auction date. The notice must be:</p><ul><li>Recorded with the county</li><li>Mailed to the borrower</li><li>Posted on the property</li><li>Published in a newspaper</li></ul>'},
+  'nonjudicial-timeline':{phase:'Phase 3 — Non-Judicial',title:'Non-Judicial Timeline',body:'<ul><li><strong>Notice of Default period:</strong> 1–3 months</li><li><strong>Notice of Sale to auction:</strong> 3–4 weeks</li><li><strong>Trustee deed / transfer:</strong> 1–2 weeks</li><li><strong>Total typical timeline:</strong> 4–8 months</li></ul>'},
+  states:{phase:'Phase 3',title:'Foreclosure Type by State',body:'<p>The foreclosure method available depends on state law. Most states have a clear designation, while some allow either method:</p><ul><li><strong>Judicial states</strong> require court oversight — generally slower but more borrower protections</li><li><strong>Non-judicial states</strong> use the power of sale clause in the deed of trust — faster process</li><li><strong>Both</strong> — lender may choose the method</li></ul>'},
+  redemption:{phase:'Phase 4',title:'Redemption Period',body:'<p>Some states allow a <strong>post-sale redemption period</strong> where the borrower can reclaim the property by paying the full amount owed (Reinstate or Pay in Full). This right varies significantly by state.</p>'},
+  bankruptcy:{phase:'Phase 4',title:'Bankruptcy — HOLD/STOP',body:'<p>Borrowers frequently file bankruptcy immediately before or on the day of the Foreclosure Sale. Common reasons:</p><ul><li>Automatic stay immediately halts foreclosure</li><li>Buy time to catch up on arrears (Ch. 13)</li><li>Negotiate loan modification</li><li>Sell the property</li><li>Strip a 2nd mortgage</li><li>Delay eviction</li></ul><p><strong>Scenarios:</strong><br>A. BK proceeds normally → file Motion for Relief from Stay<br>B. BK dismissed → stay lifted → return to Judgment for new sale date<br>C. Multiple BK filings → stay may not apply → FC may continue or prior sale may be valid</p>'},
+  'fcl-auction':{phase:'Phase 4 — Judicial',title:'Foreclosure Auction',body:'<p>The property is sold at public auction to the highest bidder. If no third-party bidder appears, the <strong>lender takes title</strong> (REO — Real Estate Owned).</p>'},
+  'sale-confirm':{phase:'Phase 4 — Judicial',title:'Sale Confirmation Period',body:'<p>In some states, the court must review and confirm the sale before title can transfer. This is a post-auction judicial step.</p>'},
+  'title-transfer':{phase:'Phase 4 — Judicial',title:'Transfer of Title / Eviction',body:'<p>After sale confirmation, the deed is recorded to the winning bidder. If the borrower remains in the property, <strong>eviction proceedings</strong> (unlawful detainer) may begin.</p>'},
+  'trustee-sale':{phase:'Phase 4 — Non-Judicial',title:'Foreclosure Auction / Trustee Sale',body:'<p>The property is sold at a public trustee sale. Auction is typically held at:</p><ul><li>The courthouse</li><li>On county steps</li><li>Online (increasingly common)</li></ul>'},
+  'trustee-deed':{phase:'Phase 4 — Non-Judicial',title:'Trustee Deed Issued',body:'<p>After the sale, a <strong>Trustee\'s Deed Upon Sale</strong> is issued to the winning bidder (third party or lender). This deed transfers title out of the borrower\'s name.</p>'},
+};
+
+let activeEl = null;
+
+function show(key){
+  const d = data[key];
+  if(!d) return;
+  document.getElementById('placeholder').style.display='none';
+  const c = document.getElementById('infoContent');
+  c.style.display='flex';
+  document.getElementById('iPhase').textContent = d.phase;
+  document.getElementById('iTitle').textContent = d.title;
+  document.getElementById('iBody').innerHTML = d.body;
+  if(activeEl) activeEl.classList.remove('active');
+  // find node by data key — we'll just highlight via event
+  c.style.opacity='0';c.style.transform='translateY(8px)';
+  requestAnimationFrame(()=>{
+    c.style.transition='opacity 0.2s ease, transform 0.2s ease';
+    c.style.opacity='1';c.style.transform='translateY(0)';
+  });
+}
+
+function filterPhase(p, btn){
+  document.querySelectorAll('.pill').forEach(x=>x.classList.remove('active'));
+  btn.classList.add('active');
+  document.querySelectorAll('.phase').forEach(el=>{
+    if(p==='all') el.classList.remove('dimmed');
+    else el.classList.toggle('dimmed', el.dataset.phase !== p);
+  });
+}
+</script>
+</body>
+</html>

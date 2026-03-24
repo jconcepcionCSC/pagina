@@ -1,0 +1,1190 @@
+<!DOCTYPE html>
+
+<html lang="es">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Asset Recovery</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;600;700&family=Montserrat:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+<style>
+:root {
+--gold: #C9A84C;
+--gold-light: #E8C96A;
+--gold-dark: #8B6914;
+--gold-faint: rgba(201,168,76,0.08);
+--black: #0A0A0A;
+--black-mid: #111111;
+--black-card: #161616;
+--black-border: #1E1E1E;
+--white: #F5F0E8;
+--white-dim: rgba(245,240,232,0.55);
+}
+
+```
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+html { scroll-behavior: smooth; }
+
+body {
+background: var(--black);
+color: var(--white);
+font-family: 'Montserrat', sans-serif;
+font-weight: 300;
+overflow-x: hidden;
+cursor: none;
+}
+
+/* ── Custom cursor ── */
+.cursor {
+position: fixed; top: 0; left: 0;
+width: 10px; height: 10px;
+background: var(--gold);
+border-radius: 50%;
+pointer-events: none;
+z-index: 9999;
+transform: translate(-50%, -50%);
+transition: transform 0.1s ease, width 0.2s ease, height 0.2s ease, background 0.2s ease;
+}
+.cursor-ring {
+position: fixed; top: 0; left: 0;
+width: 36px; height: 36px;
+border: 1px solid rgba(201,168,76,0.5);
+border-radius: 50%;
+pointer-events: none;
+z-index: 9998;
+transform: translate(-50%, -50%);
+transition: transform 0.18s ease, width 0.2s, height 0.2s, opacity 0.2s;
+}
+body:hover .cursor { opacity: 1; }
+
+/* ── Noise overlay ── */
+body::before {
+content: '';
+position: fixed; inset: 0;
+background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.04'/%3E%3C/svg%3E");
+pointer-events: none;
+z-index: 0;
+opacity: 0.5;
+}
+
+/* ── NAV ── */
+nav {
+position: fixed; top: 0; left: 0; right: 0;
+z-index: 100;
+display: flex; align-items: center; justify-content: space-between;
+padding: 0 60px;
+height: 80px;
+background: rgba(10,10,10,0.85);
+backdrop-filter: blur(16px);
+border-bottom: 1px solid var(--black-border);
+transition: background 0.4s;
+}
+nav.scrolled { background: rgba(10,10,10,0.97); }
+
+.nav-logo {
+font-family: 'Cormorant Garamond', serif;
+font-size: 1.5rem;
+font-weight: 700;
+letter-spacing: 0.25em;
+color: var(--gold);
+text-transform: uppercase;
+text-decoration: none;
+position: relative;
+}
+.nav-logo span {
+color: var(--white);
+font-weight: 300;
+}
+.nav-logo::after {
+content: '';
+position: absolute;
+bottom: -4px; left: 0;
+width: 100%; height: 1px;
+background: linear-gradient(90deg, var(--gold), transparent);
+}
+
+.nav-links {
+display: flex; align-items: center; gap: 40px;
+list-style: none;
+}
+.nav-links a {
+text-decoration: none;
+color: var(--white-dim);
+font-size: 0.72rem;
+letter-spacing: 0.2em;
+text-transform: uppercase;
+font-weight: 500;
+position: relative;
+transition: color 0.3s;
+}
+.nav-links a::after {
+content: '';
+position: absolute;
+bottom: -4px; left: 0;
+width: 0; height: 1px;
+background: var(--gold);
+transition: width 0.3s ease;
+}
+.nav-links a:hover { color: var(--gold); }
+.nav-links a:hover::after { width: 100%; }
+
+/* Location button */
+.btn-location {
+display: flex; align-items: center; gap: 8px;
+background: transparent;
+border: 1px solid var(--black-border);
+color: var(--white-dim);
+font-family: 'Montserrat', sans-serif;
+font-size: 0.68rem;
+letter-spacing: 0.18em;
+text-transform: uppercase;
+padding: 8px 16px;
+border-radius: 2px;
+cursor: none;
+transition: border-color 0.3s, color 0.3s, background 0.3s;
+}
+.btn-location svg { stroke: var(--gold); flex-shrink: 0; }
+.btn-location:hover {
+border-color: var(--gold);
+color: var(--gold);
+background: var(--gold-faint);
+}
+
+/* Login button */
+.btn-login {
+font-family: 'Montserrat', sans-serif;
+font-size: 0.7rem;
+letter-spacing: 0.2em;
+text-transform: uppercase;
+font-weight: 600;
+padding: 10px 28px;
+background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+color: var(--black);
+border: none;
+border-radius: 2px;
+cursor: none;
+position: relative;
+overflow: hidden;
+transition: transform 0.2s, box-shadow 0.3s;
+box-shadow: 0 0 0 transparent;
+}
+.btn-login::before {
+content: '';
+position: absolute; inset: 0;
+background: linear-gradient(135deg, var(--gold), var(--gold-light));
+opacity: 0;
+transition: opacity 0.3s;
+}
+.btn-login:hover {
+transform: translateY(-1px);
+box-shadow: 0 6px 30px rgba(201,168,76,0.35);
+}
+.btn-login:hover::before { opacity: 1; }
+.btn-login span { position: relative; z-index: 1; }
+
+/* ── HERO ── */
+.hero {
+position: relative;
+min-height: 100vh;
+display: flex; align-items: center;
+padding: 120px 60px 80px;
+overflow: hidden;
+}
+
+/* Grid background */
+.hero-grid {
+position: absolute; inset: 0;
+background-image:
+linear-gradient(rgba(201,168,76,0.04) 1px, transparent 1px),
+linear-gradient(90deg, rgba(201,168,76,0.04) 1px, transparent 1px);
+background-size: 60px 60px;
+pointer-events: none;
+}
+
+/* Glowing orb */
+.hero-orb {
+position: absolute;
+right: -100px; top: 50%;
+transform: translateY(-50%);
+width: 700px; height: 700px;
+background: radial-gradient(circle, rgba(201,168,76,0.12) 0%, rgba(201,168,76,0.03) 40%, transparent 70%);
+border-radius: 50%;
+pointer-events: none;
+animation: orb-pulse 6s ease-in-out infinite;
+}
+@keyframes orb-pulse {
+0%,100% { transform: translateY(-50%) scale(1); opacity: 1; }
+50% { transform: translateY(-50%) scale(1.1); opacity: 0.7; }
+}
+
+/* Diagonal accent line */
+.hero-line {
+position: absolute;
+top: 0; right: 280px;
+width: 1px; height: 100%;
+background: linear-gradient(180deg, transparent, rgba(201,168,76,0.3) 40%, rgba(201,168,76,0.3) 60%, transparent);
+pointer-events: none;
+}
+
+.hero-content {
+position: relative; z-index: 1;
+max-width: 750px;
+}
+
+.hero-eyebrow {
+display: flex; align-items: center; gap: 16px;
+margin-bottom: 28px;
+opacity: 0;
+animation: fade-up 0.8s ease 0.2s forwards;
+}
+.hero-eyebrow-line {
+width: 48px; height: 1px;
+background: var(--gold);
+}
+.hero-eyebrow span {
+font-size: 0.65rem;
+letter-spacing: 0.35em;
+text-transform: uppercase;
+color: var(--gold);
+font-weight: 500;
+}
+
+.hero-title {
+font-family: 'Cormorant Garamond', serif;
+font-size: clamp(3.5rem, 7vw, 6.5rem);
+font-weight: 300;
+line-height: 1.05;
+letter-spacing: -0.01em;
+color: var(--white);
+margin-bottom: 32px;
+opacity: 0;
+animation: fade-up 0.8s ease 0.4s forwards;
+}
+.hero-title em {
+font-style: italic;
+color: var(--gold);
+}
+
+.hero-desc {
+font-size: 0.85rem;
+line-height: 1.9;
+color: var(--white-dim);
+max-width: 480px;
+margin-bottom: 52px;
+letter-spacing: 0.03em;
+opacity: 0;
+animation: fade-up 0.8s ease 0.6s forwards;
+}
+
+.hero-actions {
+display: flex; align-items: center; gap: 24px;
+opacity: 0;
+animation: fade-up 0.8s ease 0.8s forwards;
+}
+
+.btn-primary {
+font-family: 'Montserrat', sans-serif;
+font-size: 0.72rem;
+letter-spacing: 0.2em;
+text-transform: uppercase;
+font-weight: 600;
+padding: 16px 40px;
+background: linear-gradient(135deg, var(--gold-dark), var(--gold));
+color: var(--black);
+border: none;
+border-radius: 2px;
+cursor: none;
+position: relative;
+overflow: hidden;
+transition: transform 0.2s, box-shadow 0.3s;
+}
+.btn-primary::after {
+content: '';
+position: absolute; inset: 0;
+background: linear-gradient(135deg, var(--gold), var(--gold-light));
+opacity: 0;
+transition: opacity 0.3s;
+}
+.btn-primary:hover {
+transform: translateY(-2px);
+box-shadow: 0 10px 40px rgba(201,168,76,0.4);
+}
+.btn-primary:hover::after { opacity: 1; }
+.btn-primary span { position: relative; z-index: 1; }
+
+.btn-outline {
+font-family: 'Montserrat', sans-serif;
+font-size: 0.72rem;
+letter-spacing: 0.2em;
+text-transform: uppercase;
+font-weight: 500;
+padding: 15px 36px;
+background: transparent;
+color: var(--gold);
+border: 1px solid var(--gold);
+border-radius: 2px;
+cursor: none;
+transition: background 0.3s, color 0.3s, transform 0.2s;
+text-decoration: none;
+display: inline-block;
+}
+.btn-outline:hover {
+background: var(--gold-faint);
+transform: translateY(-2px);
+}
+
+/* Hero stats */
+.hero-stats {
+position: absolute;
+bottom: 60px; right: 60px;
+display: flex; gap: 48px;
+z-index: 1;
+opacity: 0;
+animation: fade-up 0.8s ease 1s forwards;
+}
+.stat { text-align: right; }
+.stat-num {
+font-family: 'Cormorant Garamond', serif;
+font-size: 2.4rem;
+font-weight: 700;
+color: var(--gold);
+line-height: 1;
+}
+.stat-label {
+font-size: 0.6rem;
+letter-spacing: 0.22em;
+text-transform: uppercase;
+color: var(--white-dim);
+margin-top: 6px;
+}
+
+/* ── SECTION BASE ── */
+section { padding: 100px 60px; position: relative; }
+
+.section-label {
+display: flex; align-items: center; gap: 16px;
+margin-bottom: 20px;
+}
+.section-label-line { width: 32px; height: 1px; background: var(--gold); }
+.section-label span {
+font-size: 0.62rem;
+letter-spacing: 0.35em;
+text-transform: uppercase;
+color: var(--gold);
+font-weight: 500;
+}
+
+.section-title {
+font-family: 'Cormorant Garamond', serif;
+font-size: clamp(2.2rem, 4vw, 3.6rem);
+font-weight: 300;
+line-height: 1.1;
+color: var(--white);
+margin-bottom: 24px;
+}
+.section-title em { font-style: italic; color: var(--gold); }
+
+/* ── SERVICES ── */
+#resources {
+background: var(--black-mid);
+border-top: 1px solid var(--black-border);
+border-bottom: 1px solid var(--black-border);
+}
+.resources-header {
+display: grid; grid-template-columns: 1fr 1fr; gap: 60px;
+margin-bottom: 72px; align-items: end;
+}
+.resources-desc {
+font-size: 0.83rem;
+line-height: 1.9;
+color: var(--white-dim);
+letter-spacing: 0.03em;
+}
+
+.cards-grid {
+display: grid;
+grid-template-columns: repeat(3, 1fr);
+gap: 2px;
+}
+.card {
+background: var(--black-card);
+border: 1px solid var(--black-border);
+padding: 48px 40px;
+position: relative;
+overflow: hidden;
+cursor: none;
+transition: border-color 0.4s, transform 0.3s;
+}
+.card::before {
+content: '';
+position: absolute;
+bottom: 0; left: 0;
+width: 100%; height: 2px;
+background: linear-gradient(90deg, var(--gold-dark), var(--gold));
+transform: scaleX(0);
+transform-origin: left;
+transition: transform 0.4s ease;
+}
+.card:hover { border-color: rgba(201,168,76,0.3); transform: translateY(-4px); }
+.card:hover::before { transform: scaleX(1); }
+
+.card-icon {
+width: 48px; height: 48px;
+margin-bottom: 28px;
+color: var(--gold);
+}
+.card-num {
+font-family: 'Cormorant Garamond', serif;
+font-size: 0.75rem;
+letter-spacing: 0.3em;
+color: rgba(201,168,76,0.3);
+margin-bottom: 20px;
+font-weight: 600;
+}
+.card-title {
+font-family: 'Cormorant Garamond', serif;
+font-size: 1.5rem;
+font-weight: 600;
+color: var(--white);
+margin-bottom: 16px;
+line-height: 1.2;
+}
+.card-text {
+font-size: 0.78rem;
+line-height: 1.85;
+color: var(--white-dim);
+letter-spacing: 0.02em;
+}
+.card-link {
+display: inline-flex; align-items: center; gap: 8px;
+margin-top: 28px;
+font-size: 0.65rem;
+letter-spacing: 0.22em;
+text-transform: uppercase;
+color: var(--gold);
+text-decoration: none;
+font-weight: 500;
+transition: gap 0.3s;
+}
+.card-link:hover { gap: 14px; }
+.card-link svg { stroke: currentColor; }
+
+/* ── ABOUT ── */
+#about {
+display: grid; grid-template-columns: 1fr 1fr; gap: 100px;
+align-items: center;
+}
+.about-visual {
+position: relative;
+}
+.about-img-frame {
+position: relative;
+aspect-ratio: 3/4;
+overflow: hidden;
+border: 1px solid var(--black-border);
+}
+.about-img-frame::before {
+content: '';
+position: absolute; inset: 0;
+background: linear-gradient(135deg, var(--black) 0%, var(--black-mid) 40%, #1a1500 100%);
+z-index: 0;
+}
+/* Decorative blueprint pattern */
+.about-img-frame::after {
+content: '';
+position: absolute; inset: 0;
+background-image:
+linear-gradient(rgba(201,168,76,0.06) 1px, transparent 1px),
+linear-gradient(90deg, rgba(201,168,76,0.06) 1px, transparent 1px);
+background-size: 30px 30px;
+z-index: 1;
+}
+.about-badge {
+position: absolute;
+top: -20px; right: -20px;
+width: 100px; height: 100px;
+border: 1px solid var(--gold);
+border-radius: 50%;
+display: flex; align-items: center; justify-content: center;
+text-align: center;
+background: var(--black);
+z-index: 3;
+}
+.about-badge-text {
+font-family: 'Cormorant Garamond', serif;
+font-size: 1.1rem;
+font-weight: 700;
+color: var(--gold);
+line-height: 1;
+}
+.about-badge-sub {
+font-size: 0.45rem;
+letter-spacing: 0.2em;
+text-transform: uppercase;
+color: var(--white-dim);
+margin-top: 4px;
+}
+.about-corner {
+position: absolute;
+bottom: -16px; left: -16px;
+width: 80px; height: 80px;
+border-left: 2px solid var(--gold);
+border-bottom: 2px solid var(--gold);
+z-index: 3;
+}
+.about-inner {
+position: absolute; inset: 0; z-index: 2;
+display: flex; align-items: center; justify-content: center;
+}
+.about-inner-icon {
+opacity: 0.15;
+}
+
+.about-content {}
+.about-text {
+font-size: 0.83rem;
+line-height: 1.95;
+color: var(--white-dim);
+margin-bottom: 20px;
+letter-spacing: 0.02em;
+}
+.about-features {
+margin-top: 40px;
+display: flex; flex-direction: column; gap: 20px;
+}
+.about-feature {
+display: flex; align-items: flex-start; gap: 16px;
+padding-bottom: 20px;
+border-bottom: 1px solid var(--black-border);
+}
+.about-feature:last-child { border-bottom: none; }
+.feature-dot {
+width: 6px; height: 6px;
+border-radius: 50%;
+background: var(--gold);
+flex-shrink: 0;
+margin-top: 6px;
+}
+.feature-title {
+font-size: 0.75rem;
+letter-spacing: 0.15em;
+text-transform: uppercase;
+color: var(--white);
+font-weight: 600;
+margin-bottom: 6px;
+}
+.feature-text {
+font-size: 0.75rem;
+line-height: 1.7;
+color: var(--white-dim);
+}
+
+/* ── CONTACT ── */
+#contact {
+background: var(--black-mid);
+border-top: 1px solid var(--black-border);
+}
+.contact-grid {
+display: grid; grid-template-columns: 1fr 1fr; gap: 80px;
+margin-top: 60px;
+}
+.contact-info {}
+.contact-item {
+display: flex; align-items: flex-start; gap: 20px;
+margin-bottom: 36px;
+padding-bottom: 36px;
+border-bottom: 1px solid var(--black-border);
+}
+.contact-item:last-child { border-bottom: none; margin-bottom: 0; }
+.contact-icon {
+width: 44px; height: 44px;
+border: 1px solid var(--black-border);
+border-radius: 2px;
+display: flex; align-items: center; justify-content: center;
+flex-shrink: 0;
+color: var(--gold);
+}
+.contact-label {
+font-size: 0.6rem;
+letter-spacing: 0.3em;
+text-transform: uppercase;
+color: var(--gold);
+margin-bottom: 6px;
+font-weight: 500;
+}
+.contact-value {
+font-family: 'Cormorant Garamond', serif;
+font-size: 1.15rem;
+color: var(--white);
+font-weight: 400;
+}
+
+.contact-form {}
+.form-row { margin-bottom: 20px; }
+.form-label {
+display: block;
+font-size: 0.6rem;
+letter-spacing: 0.25em;
+text-transform: uppercase;
+color: var(--gold);
+font-weight: 500;
+margin-bottom: 8px;
+}
+.form-input, .form-textarea {
+width: 100%;
+background: var(--black-card);
+border: 1px solid var(--black-border);
+color: var(--white);
+font-family: 'Montserrat', sans-serif;
+font-size: 0.82rem;
+padding: 14px 18px;
+border-radius: 2px;
+outline: none;
+transition: border-color 0.3s, background 0.3s;
+letter-spacing: 0.03em;
+}
+.form-input:focus, .form-textarea:focus {
+border-color: var(--gold);
+background: rgba(201,168,76,0.04);
+}
+.form-textarea { resize: vertical; min-height: 120px; }
+.form-input::placeholder, .form-textarea::placeholder { color: rgba(245,240,232,0.25); }
+
+/* ── FOOTER ── */
+footer {
+padding: 48px 60px;
+border-top: 1px solid var(--black-border);
+display: flex; align-items: center; justify-content: space-between;
+}
+.footer-logo {
+font-family: 'Cormorant Garamond', serif;
+font-size: 1.2rem;
+font-weight: 700;
+letter-spacing: 0.25em;
+color: var(--gold);
+text-transform: uppercase;
+}
+.footer-logo span { color: rgba(245,240,232,0.4); font-weight: 300; }
+.footer-copy {
+font-size: 0.62rem;
+letter-spacing: 0.15em;
+color: rgba(245,240,232,0.25);
+text-transform: uppercase;
+}
+.footer-links {
+display: flex; gap: 32px;
+list-style: none;
+}
+.footer-links a {
+font-size: 0.62rem;
+letter-spacing: 0.2em;
+text-transform: uppercase;
+color: rgba(245,240,232,0.3);
+text-decoration: none;
+transition: color 0.3s;
+}
+.footer-links a:hover { color: var(--gold); }
+
+/* ── Animations ── */
+@keyframes fade-up {
+from { opacity: 0; transform: translateY(24px); }
+to { opacity: 1; transform: translateY(0); }
+}
+.reveal {
+opacity: 0;
+transform: translateY(30px);
+transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.reveal.visible {
+opacity: 1;
+transform: translateY(0);
+}
+
+/* ── Modal ── */
+.modal-overlay {
+position: fixed; inset: 0;
+background: rgba(0,0,0,0.85);
+backdrop-filter: blur(8px);
+z-index: 200;
+display: flex; align-items: center; justify-content: center;
+opacity: 0; pointer-events: none;
+transition: opacity 0.3s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+background: var(--black-card);
+border: 1px solid rgba(201,168,76,0.25);
+padding: 60px;
+width: 480px;
+max-width: 90vw;
+position: relative;
+transform: translateY(20px);
+transition: transform 0.3s;
+}
+.modal-overlay.open .modal { transform: translateY(0); }
+.modal-close {
+position: absolute; top: 20px; right: 20px;
+background: none; border: none;
+color: var(--white-dim);
+font-size: 1.2rem;
+cursor: none;
+transition: color 0.2s;
+}
+.modal-close:hover { color: var(--gold); }
+.modal-title {
+font-family: 'Cormorant Garamond', serif;
+font-size: 2rem;
+font-weight: 600;
+color: var(--white);
+margin-bottom: 8px;
+}
+.modal-sub {
+font-size: 0.7rem;
+letter-spacing: 0.15em;
+color: var(--gold);
+text-transform: uppercase;
+margin-bottom: 36px;
+}
+.modal-divider {
+width: 40px; height: 1px;
+background: var(--gold);
+margin: 16px 0 36px;
+}
+
+/* ── Location popup ── */
+.location-popup {
+position: fixed;
+bottom: 30px; right: 30px;
+background: var(--black-card);
+border: 1px solid rgba(201,168,76,0.35);
+padding: 20px 24px;
+z-index: 150;
+opacity: 0;
+transform: translateY(10px);
+transition: opacity 0.4s, transform 0.4s;
+pointer-events: none;
+max-width: 280px;
+}
+.location-popup.show { opacity: 1; transform: translateY(0); pointer-events: all; }
+.location-popup-title {
+font-size: 0.6rem;
+letter-spacing: 0.25em;
+text-transform: uppercase;
+color: var(--gold);
+margin-bottom: 8px;
+}
+.location-popup-addr {
+font-family: 'Cormorant Garamond', serif;
+font-size: 1rem;
+color: var(--white);
+}
+
+/* Mobile */
+@media (max-width: 900px) {
+nav { padding: 0 24px; }
+.nav-links { display: none; }
+section { padding: 80px 24px; }
+.hero { padding: 120px 24px 80px; }
+.hero-stats { display: none; }
+#about { grid-template-columns: 1fr; gap: 48px; }
+.resources-header { grid-template-columns: 1fr; gap: 24px; }
+.cards-grid { grid-template-columns: 1fr; }
+.contact-grid { grid-template-columns: 1fr; gap: 48px; }
+footer { flex-direction: column; gap: 24px; text-align: center; }
+}
+```
+
+</style>
+</head>
+<body>
+
+<!-- Custom cursor -->
+
+<div class="cursor" id="cursor"></div>
+<div class="cursor-ring" id="cursorRing"></div>
+
+<!-- NAV -->
+
+<nav id="navbar">
+<a href="#" class="nav-logo">Credit<span> Service Center</span></a>
+<ul class="nav-links">
+<li>
+<button class="btn-location" onclick="toggleLocation()">
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+<path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/>
+<circle cx="12" cy="10" r="3"/>
+</svg>
+Ubicación
+</button>
+</li>
+<li><a href="#contact">Contact</a></li>
+<li><a href="#about">About us</a></li>
+<li><a href="#resources">Resources</a></li>
+</ul>
+<button class="btn-login" onclick="openLogin()"><span>Login</span></button>
+</nav>
+
+<!-- HERO -->
+
+<section class="hero">
+<div class="hero-grid"></div>
+<div class="hero-orb"></div>
+<div class="hero-line"></div>
+
+```
+<div class="hero-content">
+<div class="hero-eyebrow">
+<div class="hero-eyebrow-line"></div>
+<span>Bienvenidos</span>
+</div>
+<h1 class="hero-title">
+Credit<br><em>Service<br>Center
+</h1>
+<p class="hero-desc">
+Lorem Ipsum is simply dummy text of the printing and typesetting industry. 
+</p>
+<div class="hero-actions">
+<button class="btn-primary" onclick="openLogin()"><span>Acceder al Portal</span></button>
+<a href="#about" class="btn-outline">Conocer Más</a>
+</div>
+</div>
+
+<!--AQui iba lo del los porcentajes etc, nada importante, verificar la version orignal del codigo. cualqueir duda-->
+<div class="hero-stats">
+<div class="stat">
+<div class="stat-num"></div>
+<div class="stat-label"</div>
+</div>
+<div class="stat">
+<div class="stat-num"</div>
+<div class="stat-label"</div>
+</div>
+<div class="stat">
+<div class="stat-num"</div>
+<div class="stat-label"></div>
+</div>
+</div>
+```
+
+</section>
+
+<!-- RESOURCES -->
+
+<section id="resources">
+<div class="resources-header reveal">
+<div>
+<div class="section-label">
+<div class="section-label-line"></div>
+<span>Nuestros Recursos</span>
+</div>
+<h2 class="section-title">Soluciones<br><em>Especializadas</em></h2>
+</div>
+<p class="resources-desc">
+Ofrecemos un espectro completo de servicios para la recuperación, protección y optimización de activos. Cada solución es diseñada a medida para las necesidades específicas de nuestros clientes.
+</p>
+</div>
+
+```
+<div class="cards-grid">
+<div class="card reveal">
+<div class="card-num">01</div>
+<div class="card-title">Departamento 1</div>
+<p class="card-text">Identificación y recuperación de activos financieros perdidos, inmovilizados o en disputa mediante procesos legales y negociación estratégica.</p>
+<a href="#" class="card-link">
+Ver recursos
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+</a>
+</div>
+<div class="card reveal" style="transition-delay:0.1s">
+<div class="card-num">02</div>
+<div class="card-title">Departamento 2</div>
+<p class="card-text">Administración integral de carteras y patrimonios con enfoque en preservación del capital y crecimiento sostenible a largo plazo.</p>
+<a href="#" class="card-link">
+Ver recursos
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+</a>
+</div>
+<div class="card reveal" style="transition-delay:0.2s">
+<div class="card-num">03</div>
+<div class="card-title">Departamento 3</div>
+<p class="card-text">Soporte jurídico especializado en disputas financieras, litigios de activos y estructuración de acuerdos complejos a nivel nacional e internacional.</p>
+<a href="#" class="card-link">
+Ver recursos
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+</a>
+</div>
+<div class="card reveal" style="transition-delay:0.1s">
+<div class="card-num">04</div>
+<div class="card-title">Departamento 4</div>
+<p class="card-text">Revisión exhaustiva de registros financieros para detectar irregularidades, pérdidas ocultas y oportunidades de recuperación patrimonial.</p>
+<a href="#" class="card-link">
+Ver recursos
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+</a>
+</div>
+<div class="card reveal" style="transition-delay:0.2s">
+<div class="card-num">05</div>
+<div class="card-title">Departamento 5</div>
+<p class="card-text">Análisis profundo de mercados, activos subyacentes y tendencias financieras para tomar decisiones informadas en procesos de recuperación.</p>
+<a href="#" class="card-link">
+Ver recursos
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+</a>
+</div>
+<div class="card reveal" style="transition-delay:0.3s">
+<div class="card-num">06</div>
+<div class="card-title">Departamento 6</div>
+<p class="card-text">Plataforma segura con acceso en tiempo real al estado de sus casos, documentación y reportes detallados de progreso de recuperación.</p>
+<a href="#" class="card-link" onclick="openLogin(); return false;">
+Acceder
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke-width="1.8"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+</a>
+</div>
+</div>
+```
+
+</section>
+
+<!-- ABOUT -->
+
+<section id="about">
+<div class="about-visual reveal">
+<div class="about-img-frame">
+<div class="about-inner">
+<svg class="about-inner-icon" width="180" height="180" viewBox="0 0 24 24" fill="none" stroke="var(--gold)" stroke-width="0.5" stroke-linecap="round" stroke-linejoin="round">
+<rect x="2" y="7" width="20" height="14" rx="2"/><path d="M16 7V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v2"/>
+<line x1="12" y1="12" x2="12" y2="16"/><line x1="10" y1="14" x2="14" y2="14"/>
+</svg>
+</div>
+<div class="about-badge">
+<div>
+<div class="about-badge-text">2000</div>
+<div class="about-badge-sub">Fundado</div>
+</div>
+</div>
+<div class="about-corner"></div>
+</div>
+</div>
+
+```
+<div class="about-content">
+<div class="section-label reveal">
+<div class="section-label-line"></div>
+<span>Acerca de Nosotros</span>
+</div>
+<h2 class="section-title reveal">Credit<br><em>Service</em><br>Center</h2>
+<p class="about-text reveal">
+Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesetting, remaining essentially unchanged. It was popularised in the 1960s with the release of Letraset sheets containing Lorem Ipsum passages, and more recently with desktop publishing software like Aldus PageMaker including versions of Lorem Ipsum.
+</p>
+<p class="about-text reveal">
+Lorem Ipsum is simply dummy text of the printing and typesetting industry. Lorem Ipsum has been the industry's standard dummy text ever since the 1500s, when an unknown printer took a galley of type and scrambled it to make a type specimen book. It has survived not only five centuries, but also the leap into electronic typesett.
+</p>
+
+<div class="about-features reveal">
+<div class="about-feature">
+<div class="feature-dot"></div>
+<div>
+<div class="feature-title">Titulo de algo</div>
+<div class="feature-text">Lorem Ipsum is simply dummy text of the printing and typesetting industry. </div>
+</div>
+</div>
+<div class="about-feature">
+<div class="feature-dot"></div>
+<div>
+<div class="feature-title">titulo de algo</div>
+<div class="feature-text">Lorem Ipsum is simply dummy text of the printing and typesetting industry. </div>
+</div>
+</div>
+<div class="about-feature">
+<div class="feature-dot"></div>
+<div>
+<div class="feature-title">Titulo de algo</div>
+<div class="feature-text">Lorem Ipsum is simply dummy text of the printing and typesetting industry. </div>
+</div>
+</div>
+</div>
+</div>
+```
+
+</section>
+
+<!-- CONTACT -->
+
+<section id="contact">
+<div class="reveal">
+<div class="section-label">
+<div class="section-label-line"></div>
+<span>Contact</span>
+</div>
+<h2 class="section-title">Hable con<br><em>Nuestros Expertos</em></h2>
+</div>
+
+```
+<div class="contact-grid">
+<div class="contact-info reveal">
+<div class="contact-item">
+<div class="contact-icon">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M21 10c0 7-9 13-9 13S3 17 3 10a9 9 0 0118 0z"/><circle cx="12" cy="10" r="3"/>
+</svg>
+</div>
+<div>
+<div class="contact-label">Oficina Principal</div>
+<div class="contact-value">Direccion, calle, piso</div>
+</div>
+</div>
+<div class="contact-item">
+<div class="contact-icon">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013 10.81a19.79 19.79 0 01-3.07-8.67A2 2 0 012 0h3a2 2 0 012 1.72c.127.96.361 1.903.7 2.81a2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0122 14.92v2z"/>
+</svg>
+</div>
+<div>
+<div class="contact-label">Teléfono</div>
+<div class="contact-value">+4866 26 62</div>
+</div>
+</div>
+<div class="contact-item">
+<div class="contact-icon">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+<path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+</svg>
+</div>
+<div>
+<div class="contact-label">Email</div>
+<div class="contact-value">contact@mail.com</div>
+</div>
+</div>
+</div>
+
+<div class="contact-form reveal">
+<div class="form-row">
+<label class="form-label">Nombre Completo</label>
+<input class="form-input" type="text" placeholder="John Doe"/>
+</div>
+<div class="form-row">
+<label class="form-label">Correo Electrónico</label>
+<input class="form-input" type="email" placeholder="john@empresa.com"/>
+</div>
+<div class="form-row">
+<label class="form-label">Mensaje</label>
+<textarea class="form-textarea" placeholder="Describa su situación brevemente..."></textarea>
+</div>
+<button class="btn-primary" style="width:100%; padding:16px;" onclick="this.innerHTML='<span>Mensaje Enviado ✓</span>'; this.style.background='linear-gradient(135deg,#2a5c2a,#3a8a3a)'; setTimeout(()=>{this.innerHTML='<span>Enviar Consulta</span>'; this.style.background='';},3000)">
+<span>Enviar Consulta</span>
+</button>
+</div>
+</div>
+```
+
+</section>
+
+<!-- FOOTER -->
+
+<footer>
+<div class="footer-logo">Credit service<span> Center</span></div>
+<p class="footer-copy">© 2026 CREDIT SERVICE CENTER. All rights reserved.</p>
+<ul class="footer-links">
+<li><a href="#">Privacidad</a></li>
+<li><a href="#">Términos</a></li>
+<li><a href="#">Regulación</a></li>
+</ul>
+</footer>
+
+<!-- LOGIN MODAL -->
+
+<<!-- LOGIN MODAL -->
+
+<div class="modal-overlay" id="loginModal" onclick="if(event.target===this)closeLogin()">
+  <div class="modal">
+    <button class="modal-close" onclick="closeLogin()">✕</button>
+    <div class="modal-title">Bienvenido</div>
+    <div class="modal-sub">Portal de Empleados</div>
+    <div class="modal-divider"></div>
+    <div class="form-row">
+      <label class="form-label">Usuario</label>
+      <input class="form-input" id="loginUsuario" type="text" placeholder="usuario@empresa.com"/>
+    </div>
+    <div class="form-row" style="margin-top:16px">
+      <label class="form-label">Contraseña</label>
+      <input class="form-input" id="loginContrasena" type="password" placeholder="••••••••"/>
+    </div>
+    <p id="loginError" style="color:#e74c3c; font-size:0.7rem; text-align:center; margin-top:12px; display:none;">
+      Usuario o contraseña incorrectos.
+    </p>
+    <button class="btn-primary" style="width:100%; margin-top:28px; padding:16px;" onclick="verificarLogin()">
+      <span>Ingresar al Portal</span>
+    </button>
+    <p style="text-align:center; margin-top:20px; font-size:0.65rem; letter-spacing:0.15em; color:rgba(245,240,232,0.3);">
+      ¿OLVIDÓ SU CONTRASEÑA? <a href="#" style="color:var(--gold); text-decoration:none;">RECUPERAR</a>
+    </p>
+  </div>
+</div>
+
+<script>
+  function verificarLogin() {
+    const usuario = document.getElementById("loginUsuario").value;
+    const contrasena = document.getElementById("loginContrasena").value;
+
+    // Cambia estos valores por los que quieras
+    const USUARIO_CORRECTO = "empleado@empresa.com";
+    const CONTRASENA_CORRECTA = "miClave123";
+    const URL_DESTINO = "index.html";
+    if (usuario === USUARIO_CORRECTO && contrasena === CONTRASENA_CORRECTA) {
+      window.location.href = URL_DESTINO;
+    } else {
+      document.getElementById("loginError").style.display = "block";
+    }
+  }
+</script>
+
+<!-- LOCATION POPUP -->
+
+<div class="location-popup" id="locationPopup">
+<div class="location-popup-title">📍 Oficina Principal</div>
+<div class="location-popup-addr">Direccion<br>Ciudad, calle princiapl, piso<br><span style="font-size:0.7rem;color:var(--gold)">+1 (212) 555-0190</span></div>
+</div>
+
+<script>
+// Cursor
+const cursor = document.getElementById('cursor');
+const ring = document.getElementById('cursorRing');
+let mx=0, my=0, rx=0, ry=0;
+document.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; cursor.style.left=mx+'px'; cursor.style.top=my+'px'; });
+(function animRing() {
+rx += (mx-rx)*0.12; ry += (my-ry)*0.12;
+ring.style.left=rx+'px'; ring.style.top=ry+'px';
+requestAnimationFrame(animRing);
+})();
+document.querySelectorAll('a,button,.card').forEach(el => {
+el.addEventListener('mouseenter', () => { cursor.style.width='18px'; cursor.style.height='18px'; ring.style.width='54px'; ring.style.height='54px'; });
+el.addEventListener('mouseleave', () => { cursor.style.width='10px'; cursor.style.height='10px'; ring.style.width='36px'; ring.style.height='36px'; });
+});
+
+// Navbar scroll
+window.addEventListener('scroll', () => {
+document.getElementById('navbar').classList.toggle('scrolled', window.scrollY > 60);
+});
+
+// Reveal on scroll
+const reveals = document.querySelectorAll('.reveal');
+const observer = new IntersectionObserver(entries => {
+entries.forEach(e => { if(e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.12 });
+reveals.forEach(r => observer.observe(r));
+
+// Modal
+function openLogin() { document.getElementById('loginModal').classList.add('open'); }
+function closeLogin() { document.getElementById('loginModal').classList.remove('open'); }
+
+// Location popup
+let locVisible = false;
+function toggleLocation() {
+locVisible = !locVisible;
+document.getElementById('locationPopup').classList.toggle('show', locVisible);
+if(locVisible) setTimeout(() => { locVisible=false; document.getElementById('locationPopup').classList.remove('show'); }, 5000);
+}
+</script>
+
+</body>
+</html>
